@@ -6,7 +6,7 @@ from torchvision import transforms
 from app.src.serving import nvidia_serving_factory as serving
 
 
-def classify_document(image, model_name='classify-document-default'):
+def classify_document(image, model_name='classify-document-default', classes=None):
     transform = transforms.Compose(
         [
             transforms.Resize((244, 244)),
@@ -21,4 +21,9 @@ def classify_document(image, model_name='classify-document-default'):
 
     prob = serving().classify(model_name, img_process)
 
-    return np.argmax(prob[0])
+    index = np.argmax(prob[0])
+    
+    if classes:
+        return classes[index]
+
+    return index

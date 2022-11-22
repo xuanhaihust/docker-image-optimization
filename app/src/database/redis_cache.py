@@ -1,5 +1,5 @@
-import json
 import redis
+import json
 
 from app.config import REDIS_URI
 
@@ -112,6 +112,17 @@ class RedisCache:
         return bool(c.exists(key))
 
     # helper function
+    @staticmethod
+    def set_dict(key: str, data: dict, expire: int = DEFAULT_KEY_EXPIRE_TIME) -> bool:
+        ok = False
+        c = RedisCache.get_client()
+        if c:
+            if not data:
+                ok = c.set(key, '', ex=expire)
+            else:
+                ok = c.set(key, json.dumps(data), ex=expire)
+        return ok
+
     @staticmethod
     def get_dict(key: str):
         data = None
