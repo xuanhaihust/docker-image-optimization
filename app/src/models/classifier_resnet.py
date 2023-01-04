@@ -24,10 +24,10 @@ def classify_resnet(image, model_name, ROI, classes=None):
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    ROI_x0, ROI_y0, ROI_x1, ROI_y1 = float(ROI[0]['x']), \
-                                     float(ROI[0]['y']), \
-                                     float(ROI[1]['x']), \
-                                     float(ROI[1]['y'])
+    ROI_x0, ROI_y0, ROI_x1, ROI_y1 = float(dict(ROI[0])['x']), \
+                                     float(dict(ROI[0])['y']), \
+                                     float(dict(ROI[1])['x']), \
+                                     float(dict(ROI[1])['y'])
 
     h, w, c = image.shape
     image_x0 = int(ROI_x0 * w)
