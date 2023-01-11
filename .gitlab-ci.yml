@@ -1,5 +1,5 @@
 variables:
-  IMAGE_NAME: registry.fci.vn/fptai-vision/dmp/telco/api
+  IMAGE_NAME: registry.fci.vn/fptai-vision/flow-studio/predictor/classifier
 
   GIT_SUBMODULE_STRATEGY: recursive
 
