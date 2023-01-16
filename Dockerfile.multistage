@@ -1,0 +1,29 @@
+# Stage 1 - Install build dependencies
+FROM python:3.8.16-slim AS builder
+
+WORKDIR /code
+RUN python -m venv .venv && .venv/bin/pip install --no-cache-dir -U pip
+
+COPY requirements.txt .
+RUN .venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && find /code/.venv \( -type d -a -name test -o -name tests \) -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) -exec rm -rf '{}' \+
+
+# Stage 2 - Copy only necessary files to the runner stage
+FROM python:3.8.16-slim as runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update \
+    && apt install --no-install-recommends  -y \
+        curl telnet ncurses-bin \
+        locales ffmpeg libsm6 libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+COPY --from=builder /code /code
+ENV PATH="/code/.venv/bin:$PATH"
+
+WORKDIR /code
+ADD app /code/app
