@@ -9,6 +9,8 @@ protobuf==3.20.1
 # common process libs
 opencv-python==4.4.0.46
 numpy==1.23.5
+
+# serving
 tritonclient[all]==2.19.0
 
 # current service libs
