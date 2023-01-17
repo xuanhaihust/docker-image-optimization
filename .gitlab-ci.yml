@@ -41,7 +41,7 @@ python-syntax-check:
     - docker login -u $HARBOR_USER -p $HARBOR_PASSWORD registry.fci.vn
   script:
     - echo "RUNNING BUILD for commit" $CI_COMMIT_MESSAGE "with tag" $IMAGE_TAG
-    - docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+    - DOCKER_BUILDKIT=1 docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
     - docker push $IMAGE_NAME:$IMAGE_TAG
 
 build-dev:
