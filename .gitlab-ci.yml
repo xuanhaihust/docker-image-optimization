@@ -83,7 +83,7 @@ deploy-dev:
   <<: *deploy
   variables:
     IMAGE_TAG: $CI_COMMIT_SHORT_SHA
-    COMPONENT: $SERVICE_NAME.containers.predictor.image
+    COMPONENT: $SERVICE_NAME.containers.api.image
     HELM_VALUES_FILE: values-dev.yaml
   only:
     - dev
@@ -92,7 +92,7 @@ deploy-staging:
   <<: *deploy
   variables:
     IMAGE_TAG: $CI_COMMIT_TAG
-    COMPONENT: $SERVICE_NAME.containers.predictor.image
+    COMPONENT: $SERVICE_NAME.containers.api.image
     HELM_VALUES_FILE: values-staging.yaml
   only:
     - /^\d+\.\d+\.\d+$/
@@ -101,7 +101,7 @@ deploy-prod:
   <<: *deploy
   variables:
     IMAGE_TAG: $CI_COMMIT_TAG
-    COMPONENT: $SERVICE_NAME.containers.predictor.image
+    COMPONENT: $SERVICE_NAME.containers.api.image
     HELM_VALUES_FILE: values.yaml
   only:
     - /^\d+\.\d+\.\d+$/
