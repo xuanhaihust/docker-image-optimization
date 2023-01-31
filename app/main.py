@@ -29,7 +29,7 @@ def cache_key(_id):
     return f'image_body_{_id}'
 
 
-@app.get("/health", status_code=200)
+@app.get("/api/v1/predictor/classifier/health", status_code=200)
 async def health_check():
     return {"message": "I'm fine!"}
 
