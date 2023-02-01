@@ -29,12 +29,12 @@ def cache_key(_id):
     return f'image_body_{_id}'
 
 
-@app.get("/api/v1/predictor/classifier/health", status_code=200)
+@app.get("/health", status_code=200)
 async def health_check():
     return {"message": "I'm fine!"}
 
 
-@app.post("/api/v1/predictor/classifier/classify-document", status_code=200, response_model=PredictResponse)
+@app.post("/document", status_code=200, response_model=PredictResponse)
 async def classify_document_api(predict_request: ClassfifyDocumentRequest):
     tic = time.time()
 
@@ -66,7 +66,7 @@ async def classify_document_api(predict_request: ClassfifyDocumentRequest):
 
 
 # classify orientation
-@app.post("/api/v1/predictor/classifier/orientation", status_code=200, response_model=PredictResponse)
+@app.post("/orientation", status_code=200, response_model=PredictResponse)
 async def classify_document_api(predict_request: ClassfifyOrientationRequest):
     tic = time.time()
 
@@ -91,7 +91,7 @@ async def classify_document_api(predict_request: ClassfifyOrientationRequest):
 
 
 # classify resnet18
-@app.post("/api/v1/predictor/classifier/resnet18", status_code=200, response_model=PredictResponse)
+@app.post("/resnet18", status_code=200, response_model=PredictResponse)
 async def classify_document_api(predict_request: ClassfifyResnet18Request):
     tic = time.time()
 
