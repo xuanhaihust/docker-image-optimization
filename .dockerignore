@@ -1,0 +1,11 @@
+venv
+Dockerfile
+upload
+.env
+.gitlab-ci.yml
+README.md
+.gitmodules
+.gitignore
+.dockerignore
+wheel-installs
+__pycache__

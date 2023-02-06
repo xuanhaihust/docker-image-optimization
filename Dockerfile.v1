@@ -1,0 +1,19 @@
+FROM python:3.8.16
+
+# opencv
+RUN apt update && apt install -y locales ffmpeg libsm6 libxext6
+
+# healthcheck and compression
+RUN apt update && apt install -y curl
+RUN apt update && apt install -y telnet ncurses-bin
+
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+COPY requirements.txt /tmp/
+RUN pip install -U pip
+RUN pip install -r /tmp/requirements.txt
+
+ADD app /code/app
+WORKDIR /code

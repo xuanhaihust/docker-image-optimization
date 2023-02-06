@@ -1,0 +1,107 @@
+variables:
+  IMAGE_NAME: registry.fci.vn/fptai-vision/flow-studio/predictor/classifier
+
+  GIT_SUBMODULE_STRATEGY: recursive
+
+  GIT_OPS_REPO: https://$OPS_ACCESS_NAME:$OPS_ACCESS_TOKEN@gitlab.bcnfpt.com/vision-ops/reader-ops.git
+  GIT_OPS_USER_EMAIL: haidx7@fpt.com.vn
+  GIT_OPS_USER_NAME: ReaderCD
+
+  OPS_REPO_PATH: reader-ops/flow-studio
+  SERVICE_NAME: predictor.classifier
+
+stages:
+  - code quality
+  - build
+  - deploy
+
+# Code quality check
+python-syntax-check:
+  stage: code quality
+  image: alpine/flake8:4.0.1
+  cache: { }  # don't use the (global) cache
+  tags:
+    - reader-dev
+  script:
+    # stop the build if there are Python syntax errors or undefined names
+    - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    # check function type hints and return type
+#    - flake8 main.py --count --select=ANN001,ANN201,ANN202,ANN203,ANN204,ANN205,ANN206 --show-source --statistics
+    # exit-zero treats all errors as warnings. The Pycharm editor is 127 chars wide by default
+    - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  only:
+    - dev
+    - /^\d+\.\d+\.\d+$/
+
+.build-template: &build
+  stage: build
+  tags:
+    - builder
+  before_script:
+    - docker login -u $HARBOR_USER -p $HARBOR_PASSWORD registry.fci.vn
+  script:
+    - echo "RUNNING BUILD for commit" $CI_COMMIT_MESSAGE "with tag" $IMAGE_TAG
+    - DOCKER_BUILDKIT=1 docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+
+build-dev:
+  <<: *build
+  variables:
+    IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  only:
+    - dev
+
+build:
+  <<: *build
+  variables:
+    IMAGE_TAG: $CI_COMMIT_TAG
+  only:
+    - /^\d+\.\d+\.\d+$/
+
+
+# deploy
+.deploy-template: &deploy
+  stage: deploy
+  tags:
+    - reader-dev
+  image: alpine/git:v2.34.2
+  before_script:
+    - apk add yq --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community  # .yaml cli editor
+    - git clone $GIT_OPS_REPO
+    - git config --global user.email $GIT_OPS_USER_EMAIL
+    - git config --global user.name $GIT_OPS_USER_NAME
+  script:
+    - cd $OPS_REPO_PATH
+    - git pull  # for running deploy jobs in parallel
+    - new_image=$IMAGE_NAME:$IMAGE_TAG yq -i eval '((strenv(COMPONENT) | split(".") | .[]) as $i ireduce (. ; .[$i])) = env(new_image)' $HELM_VALUES_FILE
+    - git diff
+    - git add .
+    - git commit -m "Deploy $SERVICE_NAME with image $IMAGE_NAME:$IMAGE_TAG"
+    - git push --repo $GIT_OPS_REPO
+
+deploy-dev:
+  <<: *deploy
+  variables:
+    IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+    COMPONENT: $SERVICE_NAME.containers.api.image
+    HELM_VALUES_FILE: values-dev.yaml
+  only:
+    - dev
+
+deploy-staging:
+  <<: *deploy
+  variables:
+    IMAGE_TAG: $CI_COMMIT_TAG
+    COMPONENT: $SERVICE_NAME.containers.api.image
+    HELM_VALUES_FILE: values-staging.yaml
+  only:
+    - /^\d+\.\d+\.\d+$/
+
+deploy-prod:
+  <<: *deploy
+  variables:
+    IMAGE_TAG: $CI_COMMIT_TAG
+    COMPONENT: $SERVICE_NAME.containers.api.image
+    HELM_VALUES_FILE: values.yaml
+  only:
+    - /^\d+\.\d+\.\d+$/

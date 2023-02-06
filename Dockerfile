@@ -1,23 +1,22 @@
-FROM python:3.8.15
+FROM bitnami/pytorch:1.13.1
 
-# opencv
-RUN apt update && apt install -y locales ffmpeg libsm6 libxext6
-RUN apt update && apt install -y libsm6 libxext6 libxrender-dev libglib2.0-0 poppler-utils build-essential libpoppler-cpp-dev pkg-config
+# switch to root user
+USER root
 
-# healthcheck and compression
-RUN apt update && apt install -y curl && apt install -y unrar-free
+# basic utils (ncurses-bin for 'clear' command)
+RUN apt update && apt install --no-install-recommends  -y \
+    curl telnet ncurses-bin \
+    locales ffmpeg libsm6 libxext6
+
+# switch back to non-root user
+USER 1001
 
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
-
-# nvidia serving client
-ADD wheel-installs /tmp/wheels
-RUN pip install /tmp/wheels/*
-RUN pip install tritonclient[all]==2.19.0
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 ADD app /code/app
 WORKDIR /code
