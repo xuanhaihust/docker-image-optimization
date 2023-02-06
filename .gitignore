@@ -112,7 +112,6 @@ dmypy.json
 *flycheck*
 TAGS
 *.org
-scripts/
 *.json
 
 # Mongo
@@ -146,7 +145,6 @@ prometheus/prometheus-data/*
 .idea/
 
 # scripts
-*.sh
 .env.*
 
 # devops
