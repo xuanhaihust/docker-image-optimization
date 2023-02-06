@@ -1,6 +1,6 @@
 # default for api
 stackprinter==0.2.5
-requests==2.28.1
+# requests==2.28.1
 redis==3.5.3
 fastapi==0.85.1
 uvicorn==0.13.1
@@ -14,8 +14,4 @@ numpy==1.23.5
 tritonclient[all]==2.19.0
 
 # current service libs
-albumentations
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==1.7.1
-torchvision==0.8.2
 albumentations==0.5.2

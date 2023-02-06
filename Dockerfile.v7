@@ -1,0 +1,42 @@
+# Stage 1 - Install build dependencies
+FROM python:3.8.16 AS builder
+
+WORKDIR /code
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache python -m venv .venv \
+    && .venv/bin/pip install -U pip \
+    && .venv/bin/pip install -r requirements.txt \
+    && find /code \( -type d -a -name test -o -name tests \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' \+ \
+    && .venv/bin/pip3 uninstall -y pip
+
+# Stage 2 - Copy only necessary files to the runner stage
+FROM python:3.8.16-slim as runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt update \
+    && apt install -y --no-install-recommends \
+        curl telnet ncurses-bin \
+        locales ffmpeg libsm6 libxext6 \
+    && apt purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/* \
+    && find /usr/local \( -type d -a -name test -o -name tests \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' \+ \
+    && pip3 uninstall -y pip
+
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+COPY --from=builder /code /code
+ENV PATH="/code/.venv/bin:$PATH"
+
+WORKDIR /code
+ADD app /code/app
+
+CMD ["uvicorn", "app.main:app", "--reload", "--port", "8080"]
+EXPOSE 8080

@@ -1,0 +1,27 @@
+FROM python:3.8.16-slim
+
+RUN apt update \
+    && apt install -y --no-install-recommends \
+        curl telnet ncurses-bin \
+        locales ffmpeg libsm6 libxext6 \
+    && apt purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+COPY requirements.txt /tmp/
+RUN pip install -U pip \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && find /usr/local \( -type d -a -name test -o -name tests \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' \+ \
+    && find /code \( -type d -a -name test -o -name tests \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' \+ \
+    && pip3 uninstall -y pip
+
+ADD app /code/app
+WORKDIR /code
+
