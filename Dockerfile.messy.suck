@@ -1,0 +1,93 @@
+FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
+CMD nvidia-smi
+
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+RUN apt update && apt install -y locales
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+RUN apt-get install -y libgeos-dev
+RUN apt update && apt install -y libxrender-dev libglib2.0-0 poppler-utils libleptonica-dev tesseract-ocr libtesseract-dev pkg-config libgl1-mesa-glx
+RUN apt update && apt-get install ffmpeg libsm6 libxext6 -y
+RUN apt-get install -y libblas-dev liblapack-dev libatlas-base-dev gfortran python3-dev g++ build-essential rsync ca-certificates
+RUN apt-get install -y libpng-dev libfreetype6-dev libexecs-dev libopenblas-dev libgomp1 liblapack-dev libgcc-7-dev libquadmath0 libgfortran-8-dev alpine
+
+
+RUN apt-get install -y python3.8-dev
+RUN : \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3.8-venv \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && :
+
+
+RUN apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y ant && \
+    apt-get clean;
+    
+# Fix certificate issues
+RUN apt-get update && \
+    apt-get install ca-certificates-java && \
+    apt-get clean && \
+    update-ca-certificates -f;
+
+RUN python3.8 -m venv /venv
+ENV PATH=/venv/bin:$PATH
+
+# Setup JAVA_HOME -- useful for docker commandline
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
+RUN export JAVA_HOME
+
+
+COPY requirements.txt /tmp/
+RUN pip install --upgrade pip==22.1.1
+RUN apt update && apt install -y libcurl4-openssl-dev libssl-dev
+RUN pip install numpy==1.21.6
+# RUN pip install pip install mmcv==0.6.2 mmcv-full
+RUN pip install -r /tmp/requirements.txt --use-deprecated=legacy-resolver
+RUN pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
+# RUN pip install torch==1.8.0+cu111 torchvision==0.9.0+cu111 torchaudio==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install mmdet==2.11.0
+RUN pip uninstall mmcv
+RUN pip install mmcv-full==1.3.4 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.1/index.html
+
+
+ENV FORCE_CUDA="1"
+ARG TORCH_CUDA_ARCH_LIST="Kepler;Kepler+Tesla;Maxwell;Maxwell+Tegra;Pascal;Volta;Turing"
+ENV TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}"
+
+# COPY ntis_client/detectron2-0.6+cu111-cp38-cp38-linux_x86_64.whl /tmp/
+# RUN pip install /tmp/detectron2-0.6+cu111-cp38-cp38-linux_x86_64.whl
+RUN python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.9/index.html
+
+
+RUN pip uninstall -y pycocotools
+RUN pip install pycocotools==2.0.4
+RUN pip uninstall -y pycurl
+RUN pip install pycurl==7.44.1
+RUN pip uninstall -y mmpycocotools
+RUN pip install mmpycocotools==12.0.3
+RUN apt-get install -y --no-install-recommends libcurl4-nss-dev
+
+COPY ntis_client/tritonclient-2.5.0-py3-none-manylinux1_x86_64.whl /tmp/
+RUN pip install /tmp/tritonclient-2.5.0-py3-none-manylinux1_x86_64.whl
+
+ADD . /code
+WORKDIR /code
+
+ENV CV_EXTRACT_HOME=/code
+ENV PYTHONPATH=/code
+
+ENTRYPOINT gunicorn main:app \
+           --bind 0.0.0.0:5000  \
+           --worker-class sanic.worker.GunicornWorker \
+           --timeout 360 \
+           --threads 4 \
+           --workers=${CV_EXTRACT_WORKERS}
